@@ -1,28 +1,31 @@
-const { getClient, resetClient } = require("./store");
+// rateLimiter.js
+// Sliding window — stores request timestamps per IP.
+// Filters expired entries on each request. No scheduled resets.
+
+const clients = new Map();
 
 function rateLimiter(maxRequests = 5, windowMs = 60000) {
-  return function (req, res, next) {
-      const ip = req.ip;
-          const client = getClient(ip);
-              const now = Date.now();
+  return (req, res, next) => {
+    const now = Date.now();
+    const ip = req.ip;
+    const window = now - windowMs;
 
-                  if (now - client.startTime > windowMs) {
-                        resetClient(ip);
-                            }
+    const timestamps = (clients.get(ip) ?? []).filter(t => t > window);
+    timestamps.push(now);
+    clients.set(ip, timestamps);
 
-                                client.count++;
+    res.setHeader('X-RateLimit-Limit', maxRequests);
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - timestamps.length));
 
-                                    if (client.count > maxRequests) {
-                                          return res.status(429).json({
-                                                  error: "Too many requests",
-                                                          retryAfter: Math.ceil((windowMs - (now - client.startTime)) / 1000) + "s",
-                                                                });
-                                                                    }
+    if (timestamps.length > maxRequests) {
+      return res.status(429).json({
+        error: 'Too many requests',
+        retryAfter: `${Math.ceil((timestamps[0] + windowMs - now) / 1000)}s`,
+      });
+    }
 
-                                                                        res.setHeader("X-RateLimit-Limit", maxRequests);
-                                                                            res.setHeader("X-RateLimit-Remaining", maxRequests - client.count);
-                                                                                next();
-                                                                                  };
-                                                                                  }
+    next();
+  };
+}
 
-                                                                                  module.exports = rateLimiter;
+module.exports = rateLimiter;
