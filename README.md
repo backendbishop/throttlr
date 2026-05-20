@@ -1,43 +1,51 @@
 # Throttlr
 
-A lightweight API rate limiter middleware built with Node.js and Express.
-Throttlr tracks requests per IP address and blocks clients that exceed
-the defined limit within a time window — returning a 429 status with a
-retry timer.
+Rate limiting middleware for Express. I built Throttlr while learning how APIs protect themselves from abuse.
 
-## Install
+The first version used a fixed window — a counter that resets on a schedule. The problem: a client can burst requests across a reset boundary and effectively double the limit. The sliding window fixes that by tracking individual timestamps instead of a count. Every check looks at the last N seconds from now, not from when the window started.
 
-git clone https://github.com/simonkimeu/throttlr.git
-cd throttlr
+## Usage
+
+```js
+const rateLimiter = require('./rateLimiter');
+
+// 5 requests per 60 seconds per IP
+app.use(rateLimiter(5, 60000));
+```
+
+Limit and window are configurable:
+
+```js
+app.use(rateLimiter(10, 30000)); // 10 requests per 30 seconds
+```
+
+429 response:
+
+```json
+{
+  "error": "Too many requests",
+  "retryAfter": "42s"
+}
+```
+
+Headers on every request:
+
+```
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 3
+```
+
+## Run locally
+
+```bash
 npm install
+node index.js
+```
 
-## Run
+```bash
+curl http://localhost:3000/data
+```
 
-node src/index.js
+## Stack
 
-## Test
-
-# Normal request
-curl http://localhost:3000/
-
-# Trigger rate limit (send 10 requests)
-for i in {1..10}; do curl -s http://localhost:3000/; echo; done
-
-## Example Response (rate limited)
-
-{"error":"Too many requests","retryAfter":"59s"}
-
-## Configuration
-
-In src/index.js:
-app.use(rateLimiter(5, 60000))
-- First argument: max requests allowed
-- Second argument: time window in milliseconds
-
-## Tech Stack
-- Node.js
-- Express
-- In-memory Map store
-
-## Author
-Simon Kimeu — github.com/simonkimeu
+Node.js · Express
