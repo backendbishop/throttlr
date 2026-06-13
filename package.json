@@ -7,8 +7,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node server.ts",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "dev": "tsx server.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "keywords": ["rate-limiting", "express", "middleware", "sliding-window"],
   "author": "Simon Kimeu",
@@ -21,6 +21,6 @@
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "tsx": "^4.0.0"
   }
 }

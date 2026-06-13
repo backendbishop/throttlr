@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Throttlr — Rate Limit Explorer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #141414;
+      --border: #222;
+      --text: #e0e0e0;
+      --muted: #555;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --blue: #3b82f6;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --font-sans: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      max-width: 960px;
+      margin: 0 auto 3rem;
+    }
+
+    .wordmark {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .wordmark span { color: var(--text); }
+
+    h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      max-width: 520px;
+    }
+
+    .exploit-callout {
+      margin-top: 1.25rem;
+      padding: 0.75rem 1rem;
+      border-left: 2px solid var(--yellow);
+      background: rgba(234,179,8,0.05);
+      font-size: 0.875rem;
+      color: #a89040;
+      line-height: 1.6;
+      max-width: 560px;
+    }
+
+    .exploit-callout strong { color: var(--yellow); }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .panel-fixed .panel-title { color: var(--yellow); }
+    .panel-sliding .panel-title { color: var(--blue); }
+
+    .panel-badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      background: var(--bg);
+      color: var(--muted);
+    }
+
+    .panel-body { padding: 1.25rem; }
+
+    .algo-desc {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+      min-height: 3.2em;
+    }
+
+    /* Stats row */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.6rem 0.5rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-allowed .stat-value { color: var(--green); }
+    .stat-rejected .stat-value { color: var(--red); }
+    .stat-remaining .stat-value { color: var(--text); }
+
+    /* Request log */
+    .log {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      height: 140px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      margin-bottom: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      line-height: 1.7;
+    }
+
+    .log-entry { display: flex; gap: 0.5rem; align-items: baseline; }
+    .log-time { color: var(--muted); min-width: 5ch; }
+    .log-status-ok { color: var(--green); }
+    .log-status-err { color: var(--red); }
+    .log-msg { color: var(--text); }
+
+    /* Controls */
+    .controls { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    button {
+      font-family: var(--font-sans);
+      font-size: 0.825rem;
+      font-weight: 500;
+      padding: 0.55rem 1rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.85; }
+    button:active { opacity: 0.7; }
+
+    .btn-fire {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    .btn-burst {
+      background: var(--yellow);
+      color: #000;
+      border-color: var(--yellow);
+    }
+
+    .btn-reset {
+      background: transparent;
+      color: var(--muted);
+    }
+
+    /* Window visualiser */
+    .window-bar {
+      margin-top: 1.25rem;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .window-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    .panel-fixed .window-fill { background: var(--yellow); }
+    .panel-sliding .window-fill { background: var(--blue); }
+
+    .window-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+      font-family: var(--font-mono);
+    }
+
+    footer {
+      max-width: 960px;
+      margin: 3rem auto 0;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.775rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark"><span>Throttlr</span> / rate limit explorer</div>
+  <h1>Why fixed windows fail<br>under boundary pressure</h1>
+  <p class="subtitle">
+    Two algorithms, same limit (5 req / 10s), same traffic.
+    Fire requests normally or trigger a boundary burst to see the exploit in action.
+  </p>
+  <div class="exploit-callout">
+    <strong>The exploit:</strong> Send 5 requests at the end of a fixed window,
+    then 5 more at the start of the next. All 10 are accepted — 2× your rate limit
+    in milliseconds. Sliding windows close this gap.
+  </div>
+</header>
+
+<div class="panels">
+
+  <!-- Fixed Window -->
+  <div class="panel panel-fixed" id="panel-fixed">
+    <div class="panel-header">
+      <span class="panel-title">Fixed Window</span>
+      <span class="panel-badge">5 req / 10s</span>
+    </div>
+    <div class="panel-body">
+      <p class="algo-desc">
+        Hard bucket resets every 10s. A burst at the boundary can double
+        your effective rate — the counter resets before the window of harm closes.
+      </p>
+      <div class="stats">
+        <div class="stat stat-allowed">
+          <div class="stat-value" id="fixed-allowed">0</div>
+          <div class="stat-label">Allowed</div>
+        </div>
+        <div class="stat stat-rejected">
+          <div class="stat-value" id="fixed-rejected">0</div>
+          <div class="stat-label">Rejected</div>
+        </div>
+        <div class="stat stat-remaining">
+          <div class="stat-value" id="fixed-remaining">5</div>
+          <div class="stat-label">Remaining</div>
+        </div>
+      </div>
+      <div class="log" id="fixed-log"></div>
+      <div class="controls">
+        <button class="btn-fire" onclick="fire('fixed')">Fire request</button>
+        <button class="btn-burst" onclick="burst('fixed')">Boundary burst ×10</button>
+        <button class="btn-reset" onclick="resetPanel('fixed')">Reset</button>
+      </div>
+      <div class="window-bar">
+        <div class="window-fill" id="fixed-bar" style="width:0%"></div>
+      </div>
+      <div class="window-label">
+        <span>window usage</span>
+        <span id="fixed-bar-label">0 / 5</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sliding Window -->
+  <div class="panel panel-sliding" id="panel-sliding">
+    <div class="panel-header">
+      <span class="panel-title">Sliding Window</span>
+      <span class="panel-badge">5 req / 10s</span>
+    </div>
+    <div class="panel-body">
+      <p class="algo-desc">
+        Window anchors to now, rolling back 10s on every request.
+        Boundary bursts are caught — past requests always count against the present limit.
+      </p>
+      <div class="stats">
+        <div class="stat stat-allowed">
+          <div class="stat-value" id="sliding-allowed">0</div>
+          <div class="stat-label">Allowed</div>
+        </div>
+        <div class="stat stat-rejected">
+          <div class="stat-value" id="sliding-rejected">0</div>
+          <div class="stat-label">Rejected</div>
+        </div>
+        <div class="stat stat-remaining">
+          <div class="stat-value" id="sliding-remaining">5</div>
+          <div class="stat-label">Remaining</div>
+        </div>
+      </div>
+      <div class="log" id="sliding-log"></div>
+      <div class="controls">
+        <button class="btn-fire" onclick="fire('sliding')">Fire request</button>
+        <button class="btn-burst" onclick="burst('sliding')">Boundary burst ×10</button>
+        <button class="btn-reset" onclick="resetPanel('sliding')">Reset</button>
+      </div>
+      <div class="window-bar">
+        <div class="window-fill" id="sliding-bar" style="width:0%"></div>
+      </div>
+      <div class="window-label">
+        <span>window usage</span>
+        <span id="sliding-bar-label">0 / 5</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Throttlr v1.0 — sliding window rate limiting for Express</span>
+  <a href="https://github.com/simonkimeu/throttlr" target="_blank">github</a>
+</footer>
+
+<script>
+  const state = {
+    fixed:   { allowed: 0, rejected: 0, remaining: 5 },
+    sliding: { allowed: 0, rejected: 0, remaining: 5 },
+  };
+
+  function ts() {
+    return new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function log(algo, status, msg) {
+    const el = document.getElementById(`${algo}-log`);
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+      <span class="log-time">${ts()}</span>
+      <span class="${status === 200 ? 'log-status-ok' : 'log-status-err'}">${status}</span>
+      <span class="log-msg">${msg}</span>
+    `;
+    el.appendChild(entry);
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function updateStats(algo, headers, status) {
+    const remaining = parseInt(headers.get('ratelimit-remaining') ?? '0');
+    const limit = parseInt(headers.get('ratelimit-limit') ?? '5');
+    const used = limit - remaining;
+
+    if (status === 200) state[algo].allowed++;
+    else state[algo].rejected++;
+    state[algo].remaining = remaining;
+
+    document.getElementById(`${algo}-allowed`).textContent = state[algo].allowed;
+    document.getElementById(`${algo}-rejected`).textContent = state[algo].rejected;
+    document.getElementById(`${algo}-remaining`).textContent = remaining;
+
+    const pct = Math.min(100, (used / limit) * 100);
+    document.getElementById(`${algo}-bar`).style.width = pct + '%';
+    document.getElementById(`${algo}-bar-label`).textContent = `${used} / ${limit}`;
+  }
+
+  async function fire(algo) {
+    try {
+      const res = await fetch(`/demo/${algo}`);
+      const status = res.status;
+      if (status === 200) {
+        const data = await res.json();
+        updateStats(algo, res.headers, status);
+        log(algo, 200, `allowed — ${data.algorithm}`);
+      } else {
+        const data = await res.json();
+        updateStats(algo, res.headers, status);
+        log(algo, 429, `rejected — retry in ${data.retryAfter}s`);
+      }
+    } catch (e) {
+      log(algo, 0, `network error`);
+    }
+  }
+
+  async function burst(algo) {
+    // Fire 10 requests with minimal delay to simulate boundary burst.
+    log(algo, 0, `--- boundary burst start (×10) ---`);
+    for (let i = 0; i < 10; i++) {
+      await fire(algo);
+      await new Promise(r => setTimeout(r, 80));
+    }
+    log(algo, 0, `--- burst complete ---`);
+  }
+
+  function resetPanel(algo) {
+    state[algo] = { allowed: 0, rejected: 0, remaining: 5 };
+    document.getElementById(`${algo}-allowed`).textContent = '0';
+    document.getElementById(`${algo}-rejected`).textContent = '0';
+    document.getElementById(`${algo}-remaining`).textContent = '5';
+    document.getElementById(`${algo}-bar`).style.width = '0%';
+    document.getElementById(`${algo}-bar-label`).textContent = '0 / 5';
+    document.getElementById(`${algo}-log`).innerHTML = '';
+  }
+</script>
+
+</body>
+</html>

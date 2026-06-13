@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { fixedWindow } from '../src/limiters/fixedWindow.ts';
+import { fixedWindow } from '../src/limiters/fixedWindow.js';
 
 describe('fixedWindow', () => {
   it('allows requests within the limit', () => {

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { slidingWindow } from '../src/limiters/slidingWindow.ts';
+import { slidingWindow } from '../src/limiters/slidingWindow.js';
 
 describe('slidingWindow', () => {
   it('allows requests within the limit', () => {
