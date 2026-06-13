@@ -9,7 +9,7 @@ const PORT = process.env.PORT ?? 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(join(__dirname, '..', 'public')));
 
 // Demo routes — each uses its own store instance so state is isolated.
 // Limit: 5 requests per 10 seconds — short window makes the exploit
