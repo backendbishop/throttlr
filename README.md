@@ -91,3 +91,5 @@ byUser() key generator: deferred from v1 because it introduces an implicit depen
 ---
 
 Throttlr is part of a broader portfolio exploring systems under stress, how software behaves at boundaries, under load, and when assumptions break.
+
+Live demo: https://throttlr-rzvq.onrender.com
