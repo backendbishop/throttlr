@@ -1,17 +1,26 @@
 {
   "name": "throttlr",
   "version": "1.0.0",
-  "description": "Sliding window rate limiting middleware for Express.",
-  "main": "index.js",
+  "description": "Rate limiting middleware for Express. Fixed window vs sliding window, with interactive exploit demo.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node server.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
-  "keywords": ["rate-limiting", "express", "middleware"],
+  "keywords": ["rate-limiting", "express", "middleware", "sliding-window"],
   "author": "Simon Kimeu",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
   }
 }
